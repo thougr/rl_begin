@@ -1,7 +1,10 @@
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+
 matplotlib.use('Agg')
+
+
 class Bandit:
     def __init__(self, eps):
         self.k = 10
@@ -38,6 +41,7 @@ class Bandit:
         self.q_estimation = np.zeros(self.k)
         self.action_count = np.zeros(self.k)
 
+    # 这个最优动作指的是平均收益最高的动作，而非每次都比其它动作收益高
     def best_action(self):
         return np.argmax(self.q_star)
 
@@ -45,6 +49,7 @@ class Bandit:
 def simulate(rounds, steps, bandits):
     rewards = np.zeros((len(bandits), rounds, steps))
     best_action_counts = np.zeros(rewards.shape)
+    # 执行多轮，统计某个step下的最优动作比例和平均收益
     for i, bandit in enumerate(bandits):
         for episode in range(rounds):
             bandit.reset()
@@ -53,6 +58,7 @@ def simulate(rounds, steps, bandits):
                 action = bandit.action()
                 reward = bandit.evaluate(action)
                 bandit.update(action, reward)
+                # 统计
                 rewards[i, episode, step] = reward
                 if action == bandit.best_action():
                     best_action_counts[i, episode, step] = 1
@@ -66,9 +72,8 @@ def figure_2_1():
     # 生成 10 个标准正态分布随机数，真实q*
     epsilons = [0, 0.5, 0.1, 0.01]
     bandits = [Bandit(eps=eps) for eps in epsilons]
-    rounds = 100
+    rounds = 2000
     steps = 1000
-    # 执行多轮，统计某个step下的最优动作比例和平均收益
     plt.figure(figsize=(10, 20))
 
     plt.subplot(2, 1, 1)
