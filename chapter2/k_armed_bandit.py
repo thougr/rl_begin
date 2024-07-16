@@ -6,7 +6,8 @@ matplotlib.use('Agg')
 
 
 class Bandit:
-    def __init__(self, eps, q_star=None, alpha=0.1, armed=10, nonstationary=False, const_step_size=False):
+    def __init__(self, eps, q_star=None, alpha=0.1, armed=10, nonstationary=False, const_step_size=False, q1=0,
+                 ucb=False, c=2):
         self.k = armed
         if q_star is None:
             self.q_star = np.random.normal(loc=0.0, scale=1.0, size=self.k)
@@ -15,7 +16,7 @@ class Bandit:
         self.epsilon = eps
 
         # 单轮每个动作价值估计、执行次数
-        self.q_estimation = np.zeros(self.k)
+        self.q_estimation = np.zeros(self.k) + q1
         self.action_count = np.zeros(self.k)
 
         # n轮的总次数和平均奖励
@@ -28,8 +29,19 @@ class Bandit:
         self.nonstationary = nonstationary
         self.const_step_size = const_step_size
 
+        # used for ucb
+        self.ucb = ucb
+        self.c = c
+
     # return the index of action
-    def action(self):
+    def action(self, step):
+        if self.ucb:
+            c = self.c
+            ucb_q = [
+                qt + (c * np.sqrt(np.log(step) / nt) if nt != 0 else float('inf'))
+                for qt, nt in zip(self.q_estimation, self.action_count)
+            ]
+            return np.argmax(ucb_q)
         if np.random.rand() < self.epsilon:
             # return random from 0 ~ k-1
             return np.random.choice(range(self.k))
@@ -70,7 +82,7 @@ def simulate(rounds, steps, bandits):
             bandit.reset()
             for step in range(steps):
                 # 在一轮里面，行动一次评估一次，行动根据当前评估得出
-                action = bandit.action()
+                action = bandit.action(step)
                 reward = bandit.evaluate(action)
                 bandit.update(action, reward)
                 # 统计
@@ -85,7 +97,7 @@ def simulate(rounds, steps, bandits):
 
 def figure_2_1():
     # 生成 10 个标准正态分布随机数，真实q*
-    epsilons = [0, 0.5, 0.1, 0.01]
+    epsilons = [0, 0.1, 0.01]
     bandits = [Bandit(eps=eps) for eps in epsilons]
     rounds = 2000
     steps = 1000
@@ -111,6 +123,7 @@ def figure_2_1():
     plt.close()
     # print(mean_rewards[0])
     # print(mean_best_action_counts[0])
+
 
 def exercise_2_5():
     # 生成 10 个标准正态分布随机数，真实q*
@@ -145,8 +158,72 @@ def exercise_2_5():
     # print(mean_rewards[0])
     # print(mean_best_action_counts[0])
 
-exercise_2_5()
+
+def figure_2_3():
+    # 生成 10 个标准正态分布随机数，真实q*
+    epsilons = [0, 0.1]
+    armed = 10
+    q_star = np.random.normal(loc=0.0, scale=1.0, size=armed)
+    bandits = [Bandit(eps=0, const_step_size=True, q1=5)]
+    bandits2 = [Bandit(eps=0.1, const_step_size=True)]
+    rounds = 2000
+    steps = 1000
+    plt.figure(figsize=(10, 20))
+
+    plt.subplot(2, 1, 1)
+    # print(bandit.average_reward)
+    mean_rewards, mean_best_action_counts = simulate(rounds, steps, bandits)
+    mean_rewards2, mean_best_action_counts2 = simulate(rounds, steps, bandits2)
+    for desc, rewards in zip(["q1=5,eps=0", "q1=0,eps=0.1"], [mean_rewards[0], mean_rewards2[0]]):
+        plt.plot(rewards, label=desc)
+    plt.xlabel('steps')
+    plt.ylabel('average reward')
+    plt.legend()
+
+    plt.subplot(2, 1, 2)
+    for desc, counts in zip(["q1=5,eps=0", "q1=0,eps=0.1"], [mean_best_action_counts[0], mean_best_action_counts2[0]]):
+        plt.plot(counts, label=desc)
+    plt.xlabel('steps')
+    plt.ylabel('% optimal action')
+    plt.legend()
+
+    plt.savefig('figure_2_3.png')
+    plt.close()
+    # print(mean_rewards[0])
+    # print(mean_best_action_counts[0])
 
 
+def figure_2_4():
+    # 生成 10 个标准正态分布随机数，真实q*
+    epsilons = [0, 0.1]
+    armed = 10
+    bandits = [Bandit(eps=0, ucb=True, c=1)]
+    bandits2 = [Bandit(eps=0.1)]
+    rounds = 2000
+    steps = 1000
+    plt.figure(figsize=(10, 20))
+
+    plt.subplot(2, 1, 1)
+    # print(bandit.average_reward)
+    mean_rewards, mean_best_action_counts = simulate(rounds, steps, bandits)
+    mean_rewards2, mean_best_action_counts2 = simulate(rounds, steps, bandits2)
+    for desc, rewards in zip(["ucb c=" + str(bandits[0].c), "eps-greedy,eps=0.1"], [mean_rewards[0], mean_rewards2[0]]):
+        plt.plot(rewards, label=desc)
+    plt.xlabel('steps')
+    plt.ylabel('average reward')
+    plt.legend()
+
+    plt.subplot(2, 1, 2)
+    for desc, counts in zip(["ucb c=" + str(bandits[0].c), "eps-greedy,eps=0.1"],
+                            [mean_best_action_counts[0], mean_best_action_counts2[0]]):
+        plt.plot(counts, label=desc)
+    plt.xlabel('steps')
+    plt.ylabel('% optimal action')
+    plt.legend()
+
+    plt.savefig('figure_2_4.png')
+    plt.close()
 
 
+figure_2_4()
+# figure_2_1()
