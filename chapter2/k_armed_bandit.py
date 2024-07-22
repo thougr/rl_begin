@@ -283,5 +283,81 @@ def figure_2_5():
     plt.savefig('figure_2_5.png')
     plt.close()
 
-figure_2_5()
+def figure_2_6():
+    labels = ['epsilon-greedy', 'gradient bandit',
+              'UCB', 'optimistic initialization']
+    generators = [lambda eps: Bandit(eps=eps),
+                  lambda alpha: Bandit(use_preference=True, use_baseline=True, alpha=alpha),
+                  lambda coef: Bandit(eps=0, ucb=True, c=coef),
+                  lambda initial: Bandit(eps=0, const_step_size=True, q1=initial, alpha=0.1)
+    ]
+    parameters = [np.arange(-7, -1, dtype=np.double),
+                  np.arange(-5, 2, dtype=np.double),
+                  np.arange(-4, 3, dtype=np.double),
+                  np.arange(-2, 3, dtype=np.double)]
+    bandits = []
+    for generator, parameter in zip(generators, parameters):
+        for param in parameter:
+            bandits.append(generator(pow(2, param)))
+
+    rounds = 2000
+    steps = 1000
+    average_rewards, _ = simulate(rounds, steps, bandits)
+    rewards = np.mean(average_rewards, axis=1)
+    i = 0
+    for label, parameter in zip(labels, parameters):
+        l = len(parameter)
+        plt.plot(parameter, rewards[i:i + l], label=label)
+        i += l
+    plt.xlabel('Parameter($2^x$)')
+    plt.ylabel('Average reward')
+    plt.legend()
+
+    plt.savefig('figure_2_6.png')
+    plt.close()
+
+
+def exercise_2_11():
+    labels = [
+        # 'epsilon-greedy', 'gradient bandit',
+        #       'UCB', 'optimistic initialization',
+        'const_step_size']
+    generators = [
+        # lambda eps: Bandit(eps=eps),
+        #           lambda alpha: Bandit(use_preference=True, use_baseline=True, alpha=alpha),
+        #           lambda coef: Bandit(eps=0, ucb=True, c=coef),
+        #           lambda initial: Bandit(eps=0, const_step_size=True, q1=initial, alpha=0.1),
+
+                  lambda alpha: Bandit(nonstationary=True, const_step_size=True, alpha=alpha)
+    ]
+    parameters = [
+                  # np.arange(-7, -1, dtype=np.double),
+                  # np.arange(-5, 2, dtype=np.double),
+                  # np.arange(-4, 3, dtype=np.double),
+                  # np.arange(-2, 3, dtype=np.double),
+                    np.arange(-7, -1, dtype=np.double),
+
+                  ]
+    bandits = []
+    for generator, parameter in zip(generators, parameters):
+        for param in parameter:
+            bandits.append(generator(pow(2, param)))
+
+    rounds = 2000
+    steps = 10000
+    average_rewards, _ = simulate(rounds, steps, bandits)
+    rewards = np.mean(average_rewards, axis=1)
+    i = 0
+    for label, parameter in zip(labels, parameters):
+        l = len(parameter)
+        plt.plot(parameter, rewards[i:i + l], label=label)
+        i += l
+    plt.xlabel('Parameter($2^x$)')
+    plt.ylabel('Average reward')
+    plt.legend()
+
+    plt.savefig('exercise_2_11.png')
+    plt.close()
+# figure_2_6()
 # figure_2_1()
+exercise_2_11()
