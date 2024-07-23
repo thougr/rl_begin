@@ -5,8 +5,29 @@ from scipy.stats import poisson
 MAX_CARS = 20
 # 单天移动车的最大数量
 MAX_MOVES = 5
+
+# 免费运送第一个地点的车
+FREE_MOVE_IN_FIRST_LOCATION = 0
 # 早晨允许车的最大数量
-MAX_CARS_IN_MORNING = MAX_CARS + MAX_MOVES
+MAX_CARS_IN_MORNING = MAX_CARS + MAX_MOVES + FREE_MOVE_IN_FIRST_LOCATION
+# 是否产生停车费用
+PARKING_FEE = False
+# 杰克的停车空间上线
+PARKING_VOLUME = 10
+# 停车场费用
+PARKING_COST = 4
+
+# # 如果是4.7练习，把下面注释取消
+# # 免费运送第一个地点的车
+# FREE_MOVE_IN_FIRST_LOCATION = 1
+# # 早晨允许车的最大数量
+# MAX_CARS_IN_MORNING = MAX_CARS + MAX_MOVES + FREE_MOVE_IN_FIRST_LOCATION
+# # 是否产生停车费用
+# PARKING_FEE = True
+# # 杰克的停车空间上线
+# PARKING_VOLUME = 10
+# # 停车场费用
+# PARKING_COST = 4
 
 
 class CarRental:
@@ -63,12 +84,21 @@ class CarRental:
         # 搬运车数量不能大于原有的数量
         a = max(-n2, min(a, n1))
         # 限制每天最多搬的数量
-        a = max(-MAX_MOVES, min(a, MAX_MOVES))
+        a = max(-MAX_MOVES, min(a, (MAX_MOVES + FREE_MOVE_IN_FIRST_LOCATION)))
         # s,a
         morning_n1 = n1 - a
         morning_n2 = n2 + a
         # r(s,a)-搬运费用
-        result = self.R1[morning_n1] + self.R2[morning_n2] - 2 * abs(a)
+        result = self.R1[morning_n1] + self.R2[morning_n2]
+        if a > 0:
+            result -= 2 * (a-FREE_MOVE_IN_FIRST_LOCATION)
+        else:
+            result -= 2 * abs(a)
+        if PARKING_FEE:
+            if abs(morning_n1) > PARKING_VOLUME:
+                result -= PARKING_COST
+            if abs(morning_n2) > PARKING_VOLUME:
+                result -= PARKING_COST
         for new_n1 in range(MAX_CARS + 1):
             for new_n2 in range(MAX_CARS + 1):
                 result += self.P1[morning_n1, new_n1] * self.P2[morning_n2, new_n2] * self.gamma * self.V[
@@ -90,7 +120,8 @@ class CarRental:
     def greedy_policy(self, n1, n2, epsilon=0.0000000001):
         best_value = -float('inf')
         best_action = None
-        for a in range(max(-MAX_MOVES, -n2), min(MAX_MOVES + 1, n1 + 1)):
+        for a in range(max(-MAX_MOVES, -n2),
+                       min(MAX_MOVES + FREE_MOVE_IN_FIRST_LOCATION + 1, n1 + FREE_MOVE_IN_FIRST_LOCATION + 1)):
             this_value = self.backup_action(n1, n2, a)
             if this_value > best_value + epsilon:
                 best_value = this_value
