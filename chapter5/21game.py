@@ -3,6 +3,7 @@ import random
 import numpy as np
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+
 BLACK_JACK_MAX_POINTS_PERMISSION = 21
 DEALER_SHOW_STATE = 10
 CARD_TYPE = 13
@@ -25,9 +26,22 @@ class Blackjack(object):
         return min(10, random.randint(1, CARD_TYPE))
 
     def draw_card(self, card_sum, usable_ace):
-        card = self.card()
-        card_sum += card
+        new_card = self.card()
+        if new_card > 1:
+            card_sum += new_card
+            if card_sum > 21 and usable_ace:
+                card_sum -= 10
+                usable_ace = 0
+        elif new_card == 1:
+            if card_sum <= 10:
+                card_sum += 11
+                usable_ace = 1
+            else:
+                card_sum += 1
+        return card_sum, usable_ace
 
+    def bust(self, card_sum):
+        return card_sum > 21
 
     def generate_episode(self):
         episode = []
@@ -41,20 +55,9 @@ class Blackjack(object):
             card_sum += 10
         cur_state = (dealer_card, card_sum, usable_ace)
         episode.append(cur_state)
-        while card_sum < 20:
-            new_card = min(np.random.randint(CARD_TYPE) + 1, 10)
-            if new_card > 1:
-                card_sum += new_card
-                if card_sum > 21 and usable_ace:
-                    card_sum -= 10
-                    usable_ace = 0
-            elif new_card == 1:
-                if card_sum <= 10:
-                    card_sum += 11
-                    usable_ace = 1
-                else:
-                    card_sum += 1
-            if card_sum > 21:
+        while self.policy[dealer_card, card_sum, usable_ace] == 1:
+            card_sum, usable_ace = self.draw_card(card_sum, usable_ace)
+            if self.bust(card_sum):
                 return episode, -1
             else:
                 cur_state = (dealer_card, card_sum, usable_ace)
@@ -92,29 +95,42 @@ class Blackjack(object):
             sequence = list(set(sequence))
             for _, seq in enumerate(sequence):
                 self.N[seq[0]][seq[1]][seq[2]] += 1
-                self.V[seq[0]][seq[1]][seq[2]] += 1/self.N[seq[0]][seq[1]][seq[2]]*(score -self.V[seq[0]][seq[1]][seq[2]])
+                self.V[seq[0]][seq[1]][seq[2]] += 1 / self.N[seq[0]][seq[1]][seq[2]] * (
+                        score - self.V[seq[0]][seq[1]][seq[2]])
+
+
+def show_figure(V, begin):
+    data = V[1:, begin:]
+    print(data.shape)
+    figure = plt.figure()
+    ax = figure.add_subplot(111, projection='3d')
+    x, y = np.meshgrid(np.arange(begin, data.shape[1] + begin), np.arange(1, data.shape[0] + 1))
+    ax.plot_surface(x, y, data, cmap="viridis")
+    # 设置轴标签
+    ax.set_xlabel('X axis')
+    ax.set_ylabel('Y axis')
+    ax.set_zlabel('Z axis')
+    ax.view_init(azim=-150)
+    plt.show()
 
 
 bj = Blackjack()
 bj.iteration()
-begin = 4
-no_usable_ace_data = bj.V[1:,begin:,0]
-usable_ace_data = bj.V[1:,begin:,1]
-print(no_usable_ace_data)
-print(usable_ace_data)
-figure = plt.figure()
-ax = figure.add_subplot(111, projection='3d')
-print(no_usable_ace_data.shape, no_usable_ace_data.shape[0], no_usable_ace_data.shape[1])
-x, y = np.meshgrid(np.arange(begin, no_usable_ace_data.shape[1] + begin), np.arange(1, no_usable_ace_data.shape[0] + 1))
-ax.plot_surface(x, y, no_usable_ace_data, cmap="viridis")
-ax.view_init(azim=200)
-
-# 设置轴标签
-ax.set_xlabel('X axis')
-ax.set_ylabel('Y axis')
-ax.set_zlabel('Z axis')
-
-# 显示图形
-plt.show()
-
-
+start = 12
+print(bj.V[:, :, 0])
+print(bj.V[:, :, 1])
+no_usable_ace_data = bj.V[:, :, 0]
+usable_ace_data = bj.V[:, :, 1]
+show_figure(no_usable_ace_data, start)
+show_figure(usable_ace_data, start)
+# print(no_usable_ace_data)
+# print(usable_ace_data)
+# figure = plt.figure()
+# ax = figure.add_subplot(111, projection='3d')
+# print(no_usable_ace_data.shape, no_usable_ace_data.shape[0], no_usable_ace_data.shape[1])
+# x, y = np.meshgrid(np.arange(begin, no_usable_ace_data.shape[1] + begin), np.arange(1, no_usable_ace_data.shape[0] + 1))
+# ax.plot_surface(x, y, no_usable_ace_data, cmap="viridis")
+#
+#
+# # 显示图形
+# plt.show()
