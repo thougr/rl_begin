@@ -45,7 +45,7 @@ class Blackjack(object):
 
     def generate_episode(self):
         episode = []
-        dc_hidden = self.card()
+        # dc_hidden = self.card()
         dealer_card = self.card()
         first_card = self.card()
         second_card = self.card()
@@ -68,19 +68,8 @@ class Blackjack(object):
             dealer_sum += 10
             dealer_usable_ace = 1
         while dealer_sum < 17:
-            new_card = min(np.random.randint(CARD_TYPE) + 1, 10)
-            if new_card > 1:
-                dealer_sum += new_card
-                if dealer_sum > 21 and dealer_usable_ace:
-                    dealer_sum -= 10
-                    dealer_usable_ace = 0
-                elif new_card == 1:
-                    if dealer_sum <= 10:
-                        dealer_sum += 11
-                        dealer_usable_ace = 1
-                    else:
-                        dealer_sum += 1
-            if dealer_sum > 21:
+            dealer_sum, dealer_usable_ace = self.draw_card(dealer_sum, dealer_usable_ace)
+            if self.bust(dealer_sum):
                 return episode, 1
         if dealer_sum > card_sum:
             return episode, -1
@@ -123,14 +112,3 @@ no_usable_ace_data = bj.V[:, :, 0]
 usable_ace_data = bj.V[:, :, 1]
 show_figure(no_usable_ace_data, start)
 show_figure(usable_ace_data, start)
-# print(no_usable_ace_data)
-# print(usable_ace_data)
-# figure = plt.figure()
-# ax = figure.add_subplot(111, projection='3d')
-# print(no_usable_ace_data.shape, no_usable_ace_data.shape[0], no_usable_ace_data.shape[1])
-# x, y = np.meshgrid(np.arange(begin, no_usable_ace_data.shape[1] + begin), np.arange(1, no_usable_ace_data.shape[0] + 1))
-# ax.plot_surface(x, y, no_usable_ace_data, cmap="viridis")
-#
-#
-# # 显示图形
-# plt.show()
