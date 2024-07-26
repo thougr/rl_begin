@@ -43,11 +43,11 @@ class Gambler:
 
 # gambler = Gambler()
 # <0.5 往25、50、75这三个极值点靠，收益是最大的
-gambler = Gambler(win_prob=0.25)
+# gambler = Gambler(win_prob=0.25)
 # 0.5是怎么投都无所谓
 # gambler = Gambler(win_prob=0.5)
 # >0.5是初期保守，到中期旧随便了（当然不能太大）
-# gambler = Gambler(win_prob=0.55)
+gambler = Gambler(win_prob=0.55)
 values = gambler.value_iteration()
 policy = gambler.get_policy()
 
