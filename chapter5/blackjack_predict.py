@@ -78,10 +78,16 @@ class Blackjack(object):
         else:
             return episode, 1
 
-    def iteration(self):
+    def iteration(self, use_first=True):
         for i in range(500000):
             sequence, score = self.generate_episode()
-            sequence = list(set(sequence))
+            origin_len = len(sequence)
+            if use_first:
+                sequence = list(set(sequence))
+                if len(sequence) != origin_len:
+                    print("duplicate state")
+
+
             for _, seq in enumerate(sequence):
                 self.N[seq[0]][seq[1]][seq[2]] += 1
                 self.V[seq[0]][seq[1]][seq[2]] += 1 / self.N[seq[0]][seq[1]][seq[2]] * (
@@ -99,13 +105,14 @@ def show_figure(V, begin):
     ax.set_xlabel('X axis')
     ax.set_ylabel('Y axis')
     ax.set_zlabel('Z axis')
-    ax.view_init(azim=-150)
+    # ax.view_init(azim=-150)
     plt.show()
 
 
 bj = Blackjack()
+# bj.iteration()
 bj.iteration()
-start = 12
+start = 1
 print(bj.V[:, :, 0])
 print(bj.V[:, :, 1])
 no_usable_ace_data = bj.V[:, :, 0]
