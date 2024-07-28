@@ -127,7 +127,7 @@ class Racetrack(object):
     def iteration(self):
         for _ in range(100):
             for _ in range(10000):
-                episode = self.generate_episode(not_es=False)
+                episode = self.generate_episode(not_es=True)
                 episode = episode[::-1]
                 G = 0
                 for x, y, v_x, v_y, action in episode:
@@ -148,28 +148,22 @@ class Racetrack(object):
             delta = 0
             for x in range(ROWS):
                 for y in range(COLS):
+                    if self.out_of_bounds(x, y):
+                        continue
                     for v_x in range(MAX_VELOCITY + 1):
                         for v_y in range(MAX_VELOCITY + 1):
-                            value = self.V[x][y][v_x][v_y]
-                            max_value = MIN_VALUE
-                            for a in range(ACTION_TYPE):
-                                sum_val = 0
-                                new_x, new_y, new_v_x, new_v_y, status, restart = self.next_state(x, y, v_x, v_y, a)
+                            for action in range(ACTION_TYPE):
+                                value = self.Q[x][y][v_x][v_y][action]
+                                new_x, new_y, new_v_x, new_v_y, status, restart = self.next_state(x, y, v_x, v_y, action)
                                 if restart == RESTART_ROUND:
-                                    # 跳出去，否则状态函数不会趋于稳定，原因赞不知道
+                                    # 跳出去，否则状态函数不会趋于稳定，原因暂不知道
+                                    # 本来想这样算的：q = 1/len(start_cols)*(-1 + max（self.Q[0][s][0][0])）for s in start_cols
                                     continue
-                                    # for s in start_cols:
-                                    #     sum_val += 1/len(start_cols)*(-1 + self.V[0][s][0][0])
-                                else:
-                                    if status == CONTINUE:
-                                        sum_val = -1 + self.V[new_x][new_y][new_v_x][new_v_y]
-                                    elif status == END:
-                                        sum_val = -1
-                                max_value = max(max_value, sum_val)
-                            self.V[x][y][v_x][v_y] = max_value
-                            delta = max(delta, abs(max_value - value))
-                            # if  0.1 < abs(max_value - value) and abs(max_value - value) < 0.2:
-                            #     print()
+                                if status == CONTINUE:
+                                    self.Q[x][y][v_x][v_y][action] = -1 + max(self.Q[new_x][new_y][new_v_x][new_v_y])
+                                elif status == END:
+                                    self.Q[x][y][v_x][v_y][action] = -1
+                                delta = max(delta, abs(int(self.Q[x][y][v_x][v_y][action] - value)))
             print(delta)
             if delta < theta:
                 break
@@ -177,33 +171,11 @@ class Racetrack(object):
     def calculate_best_policy(self):
         for x in range(ROWS):
             for y in range(COLS):
+                if self.out_of_bounds(x, y):
+                    continue
                 for v_x in range(MAX_VELOCITY + 1):
                     for v_y in range(MAX_VELOCITY + 1):
-                        if self.out_of_bounds(x, y):
-                            continue
-
-                        # value = self.V[x][y][v_x][v_y]
-                        max_value = MIN_VALUE
-                        best_action = None
-                        for a in range(ACTION_TYPE):
-                            sum_val = 0
-                            new_x, new_y, new_v_x, new_v_y, status, restart = self.next_state(x, y, v_x, v_y, a)
-                            if restart == RESTART_ROUND:
-                                continue
-                                # for s in start_cols:
-                                #     sum_val += 1 / len(start_cols) * (-1 + self.V[0][s][0][0])
-                            else:
-                                if status == CONTINUE:
-                                    sum_val = -1 + self.V[new_x][new_y][new_v_x][new_v_y]
-                                elif status == END:
-                                    sum_val = -1
-                            if max_value < sum_val:
-                                max_value = sum_val
-                                best_action = a
-                        if best_action is None:
-                            # 有些状态必定撞墙 比如(0,3,0,4)，无论怎么减速，必定撞到右面去
-                            best_action = 0
-                        self.policy[x][y][v_x][v_y] = best_action
+                        self.policy[x][y][v_x][v_y] = np.argmax(self.Q[x][y][v_x][v_y])
 
     def calculate_v_star(self):
         for x in range(ROWS):
@@ -229,6 +201,8 @@ race.calculate_v_star()
 # DP获得的最优的V*[-10 -10 -10 -10 -10 -11]，pi*=[1 1 1 1 4 4]
 # race.value_iteration()
 # race.calculate_best_policy()
+# race.calculate_v_star()
+
 print(race.policy[0, 3:9, 0, 0])
 print(race.V[0, 3:9, 0, 0])
 
