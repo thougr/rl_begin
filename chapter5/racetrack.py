@@ -131,8 +131,12 @@ class Racetrack(object):
                 episode = self.generate_episode()
                 episode = episode[::-1]
                 G = 0
+                is_visit = np.zeros(shape=(ROWS, COLS, MAX_VELOCITY + 1, MAX_VELOCITY + 1, ACTION_TYPE), dtype=np.uint8)
                 for x, y, v_x, v_y, action in episode:
                     G -= 1
+                    if is_visit[x][y][v_x][v_y][action]:
+                        continue
+                    is_visit[x][y][v_x][v_y][action] = 1
                     self.N[x][y][v_x][v_y][action] += 1
                     n = self.N[x][y][v_x][v_y][action]
                     q = self.Q[x][y][v_x][v_y][action]
@@ -164,7 +168,7 @@ class Racetrack(object):
                                     self.Q[x][y][v_x][v_y][action] = -1 + max(self.Q[new_x][new_y][new_v_x][new_v_y])
                                 elif status == END:
                                     self.Q[x][y][v_x][v_y][action] = -1
-                                delta = max(delta, abs(int(self.Q[x][y][v_x][v_y][action] - value)))
+                                delta = max(delta, abs(self.Q[x][y][v_x][v_y][action] - value))
             print(delta)
             if delta < theta:
                 break
@@ -194,7 +198,7 @@ class Racetrack(object):
 
 
 
-race = Racetrack()
+race = Racetrack(es=True)
 # 蒙特卡洛最优V*[-10 -11 -11 -11 -11 -11],pi*=[1 1 1 1 1 1]
 race.iteration()
 race.calculate_v_star()
