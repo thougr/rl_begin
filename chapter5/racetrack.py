@@ -37,25 +37,26 @@ fin_cells = [(i, COLS - 1) for i in range(26, ROWS)]  # finish cells
 END = 1
 CONTINUE = 0
 
-MIN_VALUE = -999
+MIN_VALUE = -99999999
 
 #表示是不是破撞到边界了
 RESTART_ROUND = 1
 NOT_RESTART_ROUND = 0
 
 class Racetrack(object):
-    def __init__(self, eps=0.1):
-        self.V = np.full(shape=(ROWS, COLS, MAX_VELOCITY + 1, MAX_VELOCITY + 1), fill_value=MIN_VALUE)
-        self.Q = np.full(shape=(ROWS, COLS, MAX_VELOCITY + 1, MAX_VELOCITY + 1, ACTION_TYPE), fill_value=MIN_VALUE)
-        self.N = np.zeros(shape=(ROWS, COLS, MAX_VELOCITY + 1, MAX_VELOCITY + 1, ACTION_TYPE))
+    def __init__(self, eps=0.1, es=False):
+        self.V = np.full(shape=(ROWS, COLS, MAX_VELOCITY + 1, MAX_VELOCITY + 1), fill_value=MIN_VALUE, dtype=np.float32)
+        self.Q = np.full(shape=(ROWS, COLS, MAX_VELOCITY + 1, MAX_VELOCITY + 1, ACTION_TYPE), fill_value=MIN_VALUE, dtype=np.float32)
+        self.N = np.zeros(shape=(ROWS, COLS, MAX_VELOCITY + 1, MAX_VELOCITY + 1, ACTION_TYPE), dtype=np.uint32)
         self.policy = np.ones(shape=(ROWS, COLS, MAX_VELOCITY + 1, MAX_VELOCITY + 1), dtype=np.uint8)
         self.epsilon = eps
+        self.exploring_start = es
 
 
     def action(self, x, y, v_x, v_y):
-        if random.random() < 0.1:
-            # zero acceleration
-            return 0
+        # if random.random() < 0.1:
+        #     # zero acceleration
+        #     return 0
         if random.random() < self.epsilon:
             return random.randint(0, len(actions) - 1)
         return self.greedy_action(x, y, v_x, v_y)
@@ -103,7 +104,7 @@ class Racetrack(object):
     def is_end(self, x, y):
         return (x, y) in fin_cells
 
-    def generate_episode(self, not_es=True):
+    def generate_episode(self):
         episode = []
         # x = 0
         # y = random.choice(start_cols)
@@ -111,12 +112,12 @@ class Racetrack(object):
         # v_y = 0
         # # action = self.action(x, y, v_x, v_y)
         # status = CONTINUE
-        if not_es:
-            x, y, v_x, v_y, status = self.start()
-            action = self.action(x, y, v_x, v_y)
-        else:
+        if self.exploring_start:
             x, y, v_x, v_y, status = self.random_start()
             action = self.random_action()
+        else:
+            x, y, v_x, v_y, status = self.start()
+            action = self.action(x, y, v_x, v_y)
         while status == CONTINUE:
             episode.append((x, y, v_x, v_y, action))
             x, y, v_x, v_y, status, _ = self.next_state(x, y, v_x, v_y, action)
@@ -127,7 +128,7 @@ class Racetrack(object):
     def iteration(self):
         for _ in range(100):
             for _ in range(10000):
-                episode = self.generate_episode(not_es=True)
+                episode = self.generate_episode()
                 episode = episode[::-1]
                 G = 0
                 for x, y, v_x, v_y, action in episode:
@@ -188,8 +189,8 @@ class Racetrack(object):
         status = CONTINUE
         while status == CONTINUE:
             action = self.greedy_action(x, y, v_x, v_y)
-            print(x, y, v_x, v_y, action)
-            x, y, v_x, v_y, status = self.next_state(x, y, v_x, v_y, action)
+            print(x, y, v_x, v_y, action, self.Q[x][y][v_x][v_y][action])
+            x, y, v_x, v_y, status, _ = self.next_state(x, y, v_x, v_y, action)
 
 
 
