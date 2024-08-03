@@ -47,7 +47,16 @@ class Wind:
         y = max(0, min(COLS - 1, y))
         return x, y
 
-    def iteration(self, episodes=1000):
+    def expectation(self, x, y):
+        res = 0.
+        for action in range(ACTION_TYPE):
+            res += self.Q[x][y][action]
+        res /= ACTION_TYPE
+        res *= self.epsilon
+        res += (1 - self.epsilon) * max(self.Q[x][y])
+        return res
+
+    def iteration(self, episodes=1000, use_expectation=False):
         step = 0
         for episode in range(episodes):
             x, y = START
@@ -57,7 +66,10 @@ class Wind:
                 r = -1
                 next_action = self.action(next_x, next_y)
                 old_q = self.Q[x][y][action]
-                self.Q[x][y][action] = old_q + self.alpha * (r + self.Q[next_x][next_y][next_action] - old_q)
+                if use_expectation:
+                    self.Q[x][y][action] = old_q + self.alpha * (r + self.expectation(next_x, next_y) - old_q)
+                else:
+                    self.Q[x][y][action] = old_q + self.alpha * (r + self.Q[next_x][next_y][next_action] - old_q)
                 self.policy[x][y] = np.argmax(self.Q[x][y])
                 x, y = next_x, next_y
                 action = next_action
@@ -85,7 +97,7 @@ class Wind:
 
 
 wind = Wind(alpha=0.1)
-wind.iteration(episodes=100000)
+wind.iteration(episodes=100000, use_expectation=False)
 wind.calculate_v_star()
 print(wind.V)
 print(wind.policy)
